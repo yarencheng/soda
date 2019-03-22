@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -33,6 +34,47 @@ func main() {
 		})
 	})
 
+	r.GET("/photo/:id", func(c *gin.Context) {
+
+		ids := c.Param("id")
+		log.Printf("ids = %v", ids)
+
+		id, err := uuid.FromString(ids)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+		log.Printf("id = %v", id)
+
+		path := photoDir + "/" + ids + "/data"
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+
+		var photo Photo
+		err = json.Unmarshal(b, &photo)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"status": "ok",
+			"data":   photo,
+		})
+	})
+
 	r.POST("/photo", func(c *gin.Context) {
 		// single file
 		file, err := c.FormFile("file")
@@ -50,7 +92,7 @@ func main() {
 			Title:       "empty",
 			Description: "empty",
 		}
-		b, err := json.Marshal(photo)
+		jsonData, err := json.Marshal(photo)
 		if err != nil {
 			log.Printf("err: %v", err)
 			c.JSON(500, gin.H{
@@ -58,9 +100,6 @@ func main() {
 			})
 			return
 		}
-
-		jsonData := string(b)
-		log.Printf("jsonData = %v", jsonData)
 
 		dir := photoDir + "/" + photo.ID.String() + "/"
 		log.Printf("dir = %v", dir)
@@ -82,8 +121,16 @@ func main() {
 			return
 		}
 
+		err = ioutil.WriteFile(dir+"/data", jsonData, 0644)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.AbortWithStatus(500)
+			return
+		}
+
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
+			"data":   photo,
 		})
 	})
 
