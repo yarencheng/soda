@@ -81,7 +81,7 @@ func main() {
 		})
 	})
 
-	r.GET("/photo/:id/file", func(c *gin.Context) {
+	r.GET("/photo/:id/photo", func(c *gin.Context) {
 		ids := c.Param("id")
 		log.Printf("ids = %v", ids)
 
@@ -269,7 +269,7 @@ func main() {
 			return
 		}
 
-		dst := dir + "/" + file.Filename
+		dst := dir + "/photo"
 		log.Printf("dst = %v", dst)
 		err = c.SaveUploadedFile(file, dst)
 		if err != nil {
@@ -278,7 +278,7 @@ func main() {
 			return
 		}
 
-		photo.File = "photo/" + photo.ID.String() + "/" + file.Filename
+		photo.File = "photo/" + photo.ID.String() + "/photo"
 		jsonData, err := json.Marshal(photo)
 		if err != nil {
 			log.Printf("err: %v", err)
