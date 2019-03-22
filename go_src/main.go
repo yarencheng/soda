@@ -35,6 +35,35 @@ func main() {
 		})
 	})
 
+	r.DELETE("/photo/:id", func(c *gin.Context) {
+
+		ids := c.Param("id")
+		log.Printf("ids = %v", ids)
+
+		id, err := uuid.FromString(ids)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+		log.Printf("id = %v", id)
+
+		err = os.RemoveAll(photoDir + "/photo/" + id.String() + "/")
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+
 	r.GET("/photo", func(c *gin.Context) {
 
 		files, err := ioutil.ReadDir(photoDir + "/photo/")
