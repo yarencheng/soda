@@ -82,6 +82,77 @@ func main() {
 		c.Data(200, "", dat)
 	})
 
+	r.PUT("/photo/:id", func(c *gin.Context) {
+
+		ids := c.Param("id")
+		log.Printf("ids = %v", ids)
+
+		id, err := uuid.FromString(ids)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+		log.Printf("id = %v", id)
+
+		path := photoDir + "/photo/" + ids + "/data"
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+
+		var oriPhoto Photo
+		err = json.Unmarshal(b, &oriPhoto)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+
+		var modPhoto Photo
+		err = c.ShouldBindJSON(&modPhoto)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+		log.Printf("photo = %#v", modPhoto)
+
+		oriPhoto.Title = modPhoto.Title
+		oriPhoto.Description = modPhoto.Description
+
+		jsonData, err := json.Marshal(oriPhoto)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+
+		err = ioutil.WriteFile(photoDir+"/photo/"+oriPhoto.ID.String()+"/data", jsonData, 0644)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.AbortWithStatus(500)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"status": "ok",
+			"data":   oriPhoto,
+		})
+	})
+
 	r.GET("/photo/:id", func(c *gin.Context) {
 
 		ids := c.Param("id")
@@ -97,7 +168,7 @@ func main() {
 		}
 		log.Printf("id = %v", id)
 
-		path := photoDir + "/" + ids + "/data"
+		path := photoDir + "/photo/" + ids + "/data"
 		b, err := ioutil.ReadFile(path)
 		if err != nil {
 			log.Printf("err: %v", err)
