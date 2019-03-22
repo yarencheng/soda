@@ -35,6 +35,52 @@ func main() {
 		})
 	})
 
+	r.GET("/photo", func(c *gin.Context) {
+
+		files, err := ioutil.ReadDir(photoDir + "/photo/")
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+
+		photos := make([]Photo, len(files))
+
+		for i, f := range files {
+			log.Printf("f.Name() = %v", f.Name())
+
+			b, err := ioutil.ReadFile(photoDir + "/photo/" + f.Name() + "/data")
+			if err != nil {
+				log.Printf("err: %v", err)
+				c.JSON(500, gin.H{
+					"status": "failed",
+				})
+				return
+			}
+
+			var photo Photo
+			err = json.Unmarshal(b, &photo)
+			if err != nil {
+				log.Printf("err: %v", err)
+				c.JSON(500, gin.H{
+					"status": "failed",
+				})
+				return
+			}
+			log.Printf("photo = %#v", photo)
+
+			photos[i] = photo
+
+		}
+
+		c.JSON(200, gin.H{
+			"status": "ok",
+			"data":   photos,
+		})
+	})
+
 	r.GET("/photo/:id/file", func(c *gin.Context) {
 		ids := c.Param("id")
 		log.Printf("ids = %v", ids)
