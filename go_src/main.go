@@ -17,6 +17,7 @@ type Photo struct {
 	ID          uuid.UUID
 	Title       string
 	Description string
+	File        string
 }
 
 func main() {
@@ -32,6 +33,53 @@ func main() {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
+	})
+
+	r.GET("/photo/:id/file", func(c *gin.Context) {
+		ids := c.Param("id")
+		log.Printf("ids = %v", ids)
+
+		id, err := uuid.FromString(ids)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+		log.Printf("id = %v", id)
+
+		path := photoDir + "/photo/" + ids + "/data"
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+
+		var photo Photo
+		err = json.Unmarshal(b, &photo)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+		log.Printf("photo = %#v", photo)
+
+		dat, err := ioutil.ReadFile(photoDir + "/" + photo.File)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
+			return
+		}
+
+		c.Data(200, "", dat)
 	})
 
 	r.GET("/photo/:id", func(c *gin.Context) {
@@ -92,16 +140,8 @@ func main() {
 			Title:       "empty",
 			Description: "empty",
 		}
-		jsonData, err := json.Marshal(photo)
-		if err != nil {
-			log.Printf("err: %v", err)
-			c.JSON(500, gin.H{
-				"status": "failed",
-			})
-			return
-		}
 
-		dir := photoDir + "/" + photo.ID.String() + "/"
+		dir := photoDir + "/photo/" + photo.ID.String() + "/"
 		log.Printf("dir = %v", dir)
 		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -112,12 +152,22 @@ func main() {
 			return
 		}
 
-		dst := dir + "/photo"
+		dst := dir + "/" + file.Filename
 		log.Printf("dst = %v", dst)
 		err = c.SaveUploadedFile(file, dst)
 		if err != nil {
 			log.Printf("err: %v", err)
 			c.AbortWithStatus(500)
+			return
+		}
+
+		photo.File = "photo/" + photo.ID.String() + "/" + file.Filename
+		jsonData, err := json.Marshal(photo)
+		if err != nil {
+			log.Printf("err: %v", err)
+			c.JSON(500, gin.H{
+				"status": "failed",
+			})
 			return
 		}
 
